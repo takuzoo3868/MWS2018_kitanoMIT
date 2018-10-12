@@ -1,3 +1,5 @@
 .DS_Store
+.vscode
+.python-version
 /dataset/kddicup99/
 /dataset/kdd.ics.uci.edu
