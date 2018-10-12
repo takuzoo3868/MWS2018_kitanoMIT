@@ -1,8 +1,8 @@
 import numpy as np, tensorflow as tf
 from functools import reduce
-from keras.layers import Bidirectional, SimpleRNN, GRU, LSTM, Dense, Activation, BatchNormalization
+from keras.layers import Bidirectional, GRU, LSTM, Dense, Activation, BatchNormalization, Dropout, Flatten
 from keras.layers.advanced_activations import LeakyReLU
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD, RMSprop
 from keras.callbacks import EarlyStopping
 from keras.engine.topology import Input
 from keras.engine.training import Model
@@ -11,54 +11,60 @@ from keras import backend as K
 
 
 class BasicModel(object): 
-    def build(self, input_shape, rnn_type='RNN', bidirectional=True, vat=True):
+    def __init__(self, multi_class=False):
+        self.multi_class = multi_class
+        
+    def build(self, input_shape, nn_type='Dense', bidirectional=True, vat=True):
         """ build model
         :param input_shape: shape=(number of input rows, 1)
-        :param rnn_type: select 'RNN' or 'GRU' or 'LSTM'
+        :param nn_type: select 'Dense' or 'RNN' or 'GRU' or 'LSTM'
         :param bidirectional: use_flag for Bidirectional rnn
         :param vat: use_flag for VAT
+        :param multi_class: use_flag for multi_class
         :return: self
         """
-        self.input_shape = input_shape
-        input_layer = Input(self.input_shape)
-        output_layer = self.core_data_flow(input_layer, rnn_type, bidirectional)
+        input_layer = Input(input_shape)
+        output_layer = self.core_data_flow(input_layer, nn_type, bidirectional)
         if vat:
             self.model = VATModel(input_layer, output_layer).setup_vat_loss()
         else:
             self.model = Model(input_layer, output_layer)
         return self
     
-    def core_data_flow(self, input_layer, rnn_type, bidirectional):
-        """ build rnn model
+    def core_data_flow(self, input_layer, nn_type, bidirectional):
+        """ build nn model
         :param input_layer: required for Model()
-        :param rnn_type: select 'RNN' or 'GRU' or 'LSTM'
-        :param bidirectional: use_flag for Bidirectional rnn
         :return: layer
         """
-        x = Dense(160)(input_layer)
-        x = BatchNormalization()(x)
-        x = LeakyReLU()(x)
-        if bidirectional:
-            if rnn_type == 'RNN':
-                x = Bidirectional(SimpleRNN(256))(x)
-            elif rnn_type == 'GRU':
-                x = Bidirectional(GRU(256))(x)
-            elif rnn_type == 'LSTM':
-                x = Bidirectional(LSTM(256))(x)
+        if nn_type == 'Dense':
+            x = Dense(64, activation='relu')(input_layer)
+            x = Dropout(0.5)(x)
+            x = Dense(64, activation='relu')(x)
+            x = Dropout(0.5)(x)
+            x = Flatten()(x)
+            if self.multi_class:
+                x = Dense(5, activation='softmax')(x)
+            else:
+                x = Dense(1, activation='sigmoid')(x)
         else:
-            if rnn_type == 'RNN':
-                x = SimpleRNN(256)(x)
-            elif rnn_type == 'GRU':
-                x = GRU(256)(x)
-            elif rnn_type == 'LSTM':
-                x = LSTM(256)(x)
-        x = BatchNormalization()(x)
-        x = LeakyReLU()(x)
-        x = Dense(1)(x)
-        x = Activation('sigmoid')(x)
+            x = Dense(160)(input_layer)
+            x = BatchNormalization()(x)
+            x = LeakyReLU()(x)
+            if nn_type == 'RNN':
+                x = Bidirectional(SimpleRNN(256))(x)
+            elif nn_type == 'GRU':
+                x = Bidirectional(GRU(256))(x)
+            elif nn_type == 'LSTM':
+                x = Bidirectional(LSTM(256))(x)
+            x = BatchNormalization()(x)
+            x = LeakyReLU()(x)
+            if self.multi_class:
+                x = Dense(5, activation='softmax')(x)
+            else:
+                x = Dense(1, activation='sigmoid')(x)
         return x
     
-    def train(self, X_train, X_test, y_train, y_test, batch_size=128, epochs=100, early_stop=False):
+    def train(self, X_train, X_test, y_train, y_test, batch_size=128, epochs=100, early_stop=True):
         """ train rnn model
         :param X_train, X_test, y_train, y_test: X is feature vectol. y is label
         :param batch_size: onece per training size
@@ -66,17 +72,23 @@ class BasicModel(object):
         :param early_stopinput_layer: use_flag for EarlyStopping
         :return: history data
         """
-        self.model.compile(loss='binary_crossentropy',#'categorical_crossentropy',
-                           optimizer=Adam(0.0001, beta_1=0.5, beta_2=0.9), 
-                           metrics=['accuracy'])
+        if self.multi_class:
+            self.model.compile(loss='categorical_crossentropy',
+                               optimizer=SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True),
+                               metrics=['accuracy'])
+        else:
+            self.model.compile(loss='binary_crossentropy',
+                               optimizer='RMSprop',
+                               metrics=['accuracy'])
+        
         np.random.seed(1337)  # for reproducibility
         if early_stop:
-            early_stopping = EarlyStopping(monitor='val_loss', mode='auto', patience=20)
+            early_stopping = EarlyStopping(monitor='val_loss', mode='auto', patience=5)
             return self.model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs,
                                   validation_data=(X_test, y_test), callbacks=[early_stopping])
         else:
             return self.model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs,
-                                  validation_data=(X_test, y_test)) 
+                                 validation_data=(X_test, y_test)) 
         
     def predict(self, X):
         return self.model.predict(X)
@@ -141,4 +153,3 @@ class VATModel(Model):
     def kld(p, q):
         v = p * (K.log(p + K.epsilon()) - K.log(q + K.epsilon()))
         return K.sum(K.batch_flatten(v), axis=1, keepdims=True)
-
