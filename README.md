@@ -23,11 +23,11 @@ $ sh setup.sh
 ## usage 
 基本的な利用方法は以下の通りです．
 
-pcapファイルからkddcup99形式への変換(最終的に)
+pcapファイルからkddcup99形式への変換(最終的に"trafAld.list"というファイルができます)
 ```bash
-$ bro -r <pcap file path> tcpdump2gureKDDCup99/darpa2gurekddcup.bro > <temp file name>
-$ sort -n <temp file name> > <temp file name>
-$ tcpdump2gureKDDCup99/trafAld.out <temp file name>
+$ bro -r <pcap file path> tcpdump2gureKDDCup99/darpa2gurekddcup.bro > conn.list
+$ sort -n conn.list > conn_sort.list
+$ tcpdump2gureKDDCup99/trafAld.out conn_sort.list
 ```
 
 全結合ネットワークによる学習、および予測
