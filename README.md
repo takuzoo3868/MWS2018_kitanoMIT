@@ -36,7 +36,7 @@ $ python attack_classification_and_mapping.py --mode train
 $ python attack_classification_and_mapping.py --mode predict --file_path trafAld.list
 ```
 
-`--mode predictを実行するとマッピングデータが`./trafAld-map.html`にエクスポートされます．
+`--mode predictを実行するとマッピングデータが"./trafAld-map.html"にエクスポートされます．
 
 |     option    |             description              |
 |:-------------:|:--------------------------------------:|
