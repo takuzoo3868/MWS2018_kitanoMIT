@@ -9,6 +9,7 @@ import discriminator, geoip2.database, folium
 import warnings
 warnings.filterwarnings('ignore')
 
+
 def load_kddi_data(file_path, multi_class):
     """ Load KDDI Cup 99 Data
     """
@@ -41,9 +42,15 @@ def load_kddi_data(file_path, multi_class):
     else:
         # Replace label to Benign: 0, Malicious: 1
         labels = labels.replace({"^.*normal.*":0,"^(?!normal).*$":1}, regex=True)
+        
+    dataset["protocol_type"] = dataset["protocol_type"].replace({"^.*tcp*":0,"^.*udp*$":1,
+                                                                 "^.*icmp*$":2}, regex=True)
+    dataset["flag"] = dataset["flag"].replace({"^.*OTH*":0,"^.*SF*$":1,"^.*SH*$":2,"^.*S0*$":3,"^.*REJ*$":4,
+                                               "^.*RSTR*$":5,"^.*RSTO*$":6, "^.*S2*$":7,"^.*S1*$":8,
+                                               "^.*S3*$":7,"^.*SHR*$":8,"^.*RSTRH*$":9}, regex=True)
     
-    # Drop columns of string and label
-    drop_columns = ["protocol_type", "service", "flag", "label"]
+    # Drop columns 
+    drop_columns = ["protocol_type", "service", "label"]
     return dataset.drop(drop_columns, axis=1), labels
 
 
@@ -61,11 +68,17 @@ def load_converted_data(file_path):
            "dst_host_srv_serror_rate", "dst_host_rerror_rate", "dst_host_srv_rerror_rate"]
     dataset = pd.read_csv(file_path, names=col)
     
+    dataset["protocol_type"] = dataset["protocol_type"].replace({"^.*tcp*":0,"^.*udp*$":1,
+                                                                 "^.*icmp*$":2}, regex=True)
+    dataset["flag"] = dataset["flag"].replace({"^.*OTH*":0,"^.*SF*$":1,"^.*SH*$":2,"^.*S0*$":3,"^.*REJ*$":4,
+                                               "^.*RSTR*$":5,"^.*RSTO*$":6, "^.*S2*$":7,"^.*S1*$":8,
+                                               "^.*S3*$":7,"^.*SHR*$":8,"^.*RSTRH*$":9}, regex=True)
+    
     # orig_ht: 送信元ip, resp_ht: 送信先ip
     orig_ip_list = dataset["orig_ht"]
     resp_ip_list = dataset["resp_ht"]
-    drop_columns = ["num_conn", "startTimet", "orig_pt", "resp_pt", "orig_ht", "resp_ht",
-                    "protocol_type", "service", "flag"]
+    drop_columns = ["num_conn", "startTimet", "orig_pt", "resp_pt", "orig_ht", "resp_ht", "protocol_type",
+                    "service"] 
     return dataset.drop(drop_columns, axis=1), orig_ip_list, resp_ip_list
 
 
@@ -79,7 +92,7 @@ def train(multi_class, use_gpu):
         tensorflow_backend.set_session(session)
         
     # Load KDDI Data
-    X_kddi, y_kddi = load_kddi_data(file_path='./dataset/kddcup99/kddcup.data_10_percent', multi_class=multi_class)
+    X_kddi, y_kddi = load_kddi_data(file_path='./kddcup99/kddcup.data_10_percent', multi_class=multi_class)
     
     # Preprocess for data
     split_size = .4   # split 40% of the data for test
@@ -111,7 +124,7 @@ def train(multi_class, use_gpu):
     else:
         save_name = 'save_data/'+nn_type+'_weights.h5'
     base = discriminator.BasicModel(multi_class)
-    clf = base.build(input_shape=(38, 1), nn_type=nn_type, vat=True)
+    clf = base.build(input_shape=(39, 1), nn_type=nn_type, vat=True)
     clf.train(X_train, X_test, y_train, y_test, batch_size=batch_size, epochs=epochs, early_stop=True)
     clf.model.save_weights(save_name)
         
@@ -129,7 +142,7 @@ def predict(multi_class, use_gpu, file_path):
     with open(file_path, mode='w') as f:
         f.write(s)
     X_converted, orig_ip_list, resp_ip_list = load_converted_data(file_path=file_path)
-
+    
     # Preprocess for data
     scaler = MinMaxScaler(feature_range=(0, 1)) 
     X_test_nolabel = scaler.fit_transform(X_converted)
@@ -142,7 +155,7 @@ def predict(multi_class, use_gpu, file_path):
     else:
         save_name = 'save_data/'+nn_type+'_weights.h5'
     base = discriminator.BasicModel(multi_class)
-    clf = base.build(input_shape=(38, 1), nn_type=nn_type, vat=True)
+    clf = base.build(input_shape=(39, 1), nn_type=nn_type, vat=True)
     clf.model.load_weights(save_name)
     predict_resoult = clf.model.predict(X_test_nolabel)
     p_resoult = []
@@ -215,36 +228,38 @@ def search_ip_info(ip):
 
 
 def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
-    WEIGHT = 10
-    # Malicious: '#dc143c', Probe: '#0000ff', DoS: '#008000', U2R: '#ffa500', R2L: '#ee82ee'
-    color_list = ['#0000ff', '#008000', '#ffa500', '#ee82ee', 'dc143c']
+    #  Benign: '#0000ff', Probe: '#ffe4c4', DoS: '#008000', U2R: '#ffa500', R2L: '#ee82ee', Malicious: '#dc143c'
+    color_list_multi = ['#0000ff', '#ffe4c4', '#008000', '#ffa500', '#ee82ee']
+    color_list = ['#0000ff', '#dc143c']
     
-    ip_map = folium.Map(location=[50, 8], zoom_start=4)#[30, 0], zoom_start=3)
+    ip_map = folium.Map(location=[30, 0], zoom_start=3)
     for i in range(len(appered_counta)):
         if multi_class:
-            if not appered_counta[i][0][2] == 0:
-                try:
-                    folium.vector_layers.CircleMarker(
-                        location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
-                        popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
-                        radius=appered_counta[i][1]*WEIGHT,
-                        color=color_list[appered_counta[i][0][2]], fill_color=color_list[appered_counta[i][0][2]]
-                    ).add_to(ip_map)
-                except:
-                    pass
+            try:
+                folium.vector_layers.CircleMarker(
+                    location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
+                    popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
+                    radius=appered_counta[i][1],
+                    color=color_list_multi[appered_counta[i][0][2]],
+                    fill_color=color_list_multi[appered_counta[i][0][2]]
+                ).add_to(ip_map)
+            except:
+                pass
         else:
-            if not appered_counta[i][0][2] == 0:
-                try:
-                    folium.vector_layers.CircleMarker(
-                        location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
-                        popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
-                        radius=appered_counta[i][1]*WEIGHT,
-                        color=color_list[0], fill_color=color_list[appered_counta[i][0][2]]
-                    ).add_to(ip_map)
-                except:
-                    pass
-    ip_map.save(os.path.splitext(file_path)[0]+'-map.html')
-
+            try:
+                folium.vector_layers.CircleMarker(
+                    location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
+                    popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
+                    radius=appered_counta[i][1],
+                    color=color_list[appered_counta[i][0][2]], fill_color=color_list[appered_counta[i][0][2]]
+                ).add_to(ip_map)
+            except:
+                pass
+    if multi_class:
+        ip_map.save(os.path.splitext(file_path)[0]+'-multi-map.html')
+    else:
+        ip_map.save(os.path.splitext(file_path)[0]+'-map.html')
+    
     
 def get_args():
     parser = argparse.ArgumentParser()
@@ -257,6 +272,7 @@ def get_args():
     parser.add_argument("--file_path", type=str, default='_', help="file_path for predict")
     args = parser.parse_args()
     return args
+
 
 if __name__ == "__main__":
     args = get_args()
