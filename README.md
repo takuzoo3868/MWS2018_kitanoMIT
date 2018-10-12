@@ -23,6 +23,14 @@ $ sh setup.sh
 ## usage 
 基本的な利用方法は以下の通りです．
 
+pcapファイルからkddcup99形式への変換(最終的に)
+```bash
+$ bro -r <pcap file path> tcpdump2gureKDDCup99/darpa2gurekddcup.bro > <temp file name>
+$ sort -n <temp file name> > <temp file name>
+$ tcpdump2gureKDDCup99/trafAld.out <temp file name>
+```
+
+全結合ネットワークによる学習、および予測
 ```bash
 $ python attack_classification_and_mapping.py --mode train
 $ python attack_classification_and_mapping.py --mode predict --file_path FILE_PATH
