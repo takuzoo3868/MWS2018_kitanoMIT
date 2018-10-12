@@ -33,12 +33,12 @@ $ tcpdump2gureKDDCup99/trafAld.out conn_sort.list
 全結合ネットワークによる学習、および予測
 ```bash
 $ python attack_classification_and_mapping.py --mode train
-$ python attack_classification_and_mapping.py --mode predict --file_path FILE_PATH
+$ python attack_classification_and_mapping.py --mode predict --file_path trafAld.list
 ```
 
-`FILE_PATH`にはリポジトリにまとめてある`./dataset/trafAld.list`を指定することでマッピングデータが`./dataset/trafAld-map.html`にエクスポートされます．
+`--mode predictを実行するとマッピングデータが`./trafAld-map.html`にエクスポートされます．
 
-|     option    |              ｄescription              |
+|     option    |             description              |
 |:-------------:|:--------------------------------------:|
 | --multi_class | 良性悪性クラスから多クラスへ拡張します |
 | --use_gpu     | 解析にGPUを用いる場合に使用します      |
