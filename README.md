@@ -4,7 +4,7 @@ MWScup2018 事前課題
 データセット等で収集されているpcapファイルをkddcup99形式へ変換し，
 
 - VATアルゴリズムを用いたクラスタリング
-- ipアドレス情報の可視化
+- ipアドレス情報を基にした世界地図へのマッピング
 
 等，pcapを用いたデータ解析を補助するツールです．
 
@@ -17,6 +17,7 @@ $ git clone <this repo url> <install path>
 $ cd <install path>
 $ pyenv local mws2018
 $ pip install -r requirements.txt
+$ sh setup.sh
 ```
 
 ## usage 
