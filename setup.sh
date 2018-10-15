@@ -5,6 +5,8 @@ cd bro
 ./configure
 make -j4
 sudo make install
+echo "export PATH=$PATH:/usr/local/bro/bin" > ~/.profile
+source ~/.profile
 cd ..
 git clone https://github.com/inigoperona/tcpdump2gureKDDCup99.git
 gcc tcpdump2gureKDDCup99/trafAld.c -o tcpdump2gureKDDCup99/trafAld.out
