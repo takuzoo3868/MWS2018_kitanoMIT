@@ -228,8 +228,8 @@ def search_ip_info(ip):
 
 
 def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
-    #  Benign: '#0000ff', Probe: '#ffe4c4', DoS: '#008000', U2R: '#ffa500', R2L: '#ee82ee', Malicious: '#dc143c'
-    color_list_multi = ['#0000ff', '#ffe4c4', '#008000', '#ffa500', '#ee82ee']
+    #  Benign: '#0000ff', Probe: '#ff4500', DoS: '#008000', U2R: '#ffa500', R2L: '#ee82ee', Malicious: '#dc143c'
+    color_list_multi = ['#0000ff', '#ff4500', '#008000', '#ffa500', '#ee82ee']
     color_list = ['#0000ff', '#dc143c']
     
     ip_map = folium.Map(location=[30, 0], zoom_start=3)
@@ -238,8 +238,8 @@ def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
             try:
                 folium.vector_layers.CircleMarker(
                     location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
-                    popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
-                    radius=appered_counta[i][1],
+                    popup=appered_counta[i][0][1],
+                    radius=appered_counta[i][1]*7,
                     color=color_list_multi[appered_counta[i][0][2]],
                     fill_color=color_list_multi[appered_counta[i][0][2]]
                 ).add_to(ip_map)
@@ -249,8 +249,8 @@ def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
             try:
                 folium.vector_layers.CircleMarker(
                     location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
-                    popup=resp_record[i].city.name+'_resp by_'+appered_counta[i][0][0],
-                    radius=appered_counta[i][1],
+                    popup=appered_counta[i][0][1],
+                    radius=appered_counta[i][1]*7,
                     color=color_list[appered_counta[i][0][2]], fill_color=color_list[appered_counta[i][0][2]]
                 ).add_to(ip_map)
             except:
