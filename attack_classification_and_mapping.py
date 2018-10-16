@@ -231,15 +231,17 @@ def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
     #  Benign: '#0000ff', Probe: '#ff4500', DoS: '#008000', U2R: '#ffa500', R2L: '#ee82ee', Malicious: '#dc143c'
     color_list_multi = ['#0000ff', '#ff4500', '#008000', '#ffa500', '#ee82ee']
     color_list = ['#0000ff', '#dc143c']
+    RADIUS_WEIGHT = 7
     
     ip_map = folium.Map(location=[30, 0], zoom_start=3)
     for i in range(len(appered_counta)):
         if multi_class:
             try:
                 folium.vector_layers.CircleMarker(
-                    location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
+                    location=[resp_record[i].location.latitude+0.001*appered_counta[i][0][2],
+                        resp_record[i].location.longitude+0.001*appered_counta[i][0][2]],
                     popup=appered_counta[i][0][1],
-                    radius=appered_counta[i][1]*7,
+                    radius=appered_counta[i][1]*RADIUS_WEIGHT,
                     color=color_list_multi[appered_counta[i][0][2]],
                     fill_color=color_list_multi[appered_counta[i][0][2]]
                 ).add_to(ip_map)
@@ -248,19 +250,44 @@ def make_map(multi_class, appered_counta, orig_record, resp_record, file_path):
         else:
             try:
                 folium.vector_layers.CircleMarker(
-                    location=[resp_record[i].location.latitude, resp_record[i].location.longitude],
+                    location=[resp_record[i].location.latitude+0.001*appered_counta[i][0][2],
+                        resp_record[i].location.longitude+0.001*appered_counta[i][0][2]],
                     popup=appered_counta[i][0][1],
-                    radius=appered_counta[i][1]*7,
+                    radius=appered_counta[i][1]*RADIUS_WEIGHT,
                     color=color_list[appered_counta[i][0][2]], fill_color=color_list[appered_counta[i][0][2]]
                 ).add_to(ip_map)
             except:
                 pass
+    
     if multi_class:
+        legend_html =   '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; width: 150px; height: 130px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        ">&nbsp; Connection Type <br>
+                          &nbsp; Benign &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #0000ff"></i><br>
+                          &nbsp; Probe &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #ff4500"></i><br>
+                          &nbsp; DoS &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #008000"></i><br>
+                          &nbsp; U2R &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #ffa500"></i><br>
+                          &nbsp; R2L &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #ee82ee"></i>
+            </div>
+            ''' 
+        ip_map.get_root().html.add_child(folium.Element(legend_html))
         ip_map.save(os.path.splitext(file_path)[0]+'-multi-map.html')
     else:
+        legend_html =   '''
+            <div style="position: fixed; 
+                        bottom: 50px; left: 50px; width: 150px; height: 70px; 
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        ">&nbsp; Connection Type <br>
+                          &nbsp; Benign &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #0000ff"></i><br>
+                          &nbsp; Malicious &nbsp; <i class="fa fa-circle-o fa-lg" style="color: #dc143c"></i>
+            </div>
+            ''' 
+        ip_map.get_root().html.add_child(folium.Element(legend_html))
         ip_map.save(os.path.splitext(file_path)[0]+'-map.html')
     
-    
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, help="select mode: 'train' or 'predict'")
