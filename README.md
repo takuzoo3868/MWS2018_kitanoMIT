@@ -19,6 +19,7 @@ $ pyenv local mws2018
 $ pip install -r requirements.txt
 $ sh setup.sh
 ```
+注：pcap to kddcup99にbroを使用します。Anacondaがインストールされていると、broのインストールに失敗する可能性があります。
 
 ## usage 
 基本的な利用方法は以下の通りです．
