@@ -92,7 +92,7 @@ def train(multi_class, use_gpu):
         tensorflow_backend.set_session(session)
         
     # Load KDDI Data
-    X_kddi, y_kddi = load_kddi_data(file_path='./kddcup99/kddcup.data_10_percent', multi_class=multi_class)
+    X_kddi, y_kddi = load_kddi_data(file_path='./dataset/kddcup99/kddcup.data_10_percent', multi_class=multi_class)
     
     # Preprocess for data
     split_size = .4   # split 40% of the data for test
@@ -118,7 +118,6 @@ def train(multi_class, use_gpu):
     batch_size = 128
     epochs = 100
     nn_type = 'Dense'
-    os.makedirs('save_data', exist_ok=True)
     if multi_class:
         save_name = 'save_data/'+nn_type+'_weights_multi.h5'
     else:
